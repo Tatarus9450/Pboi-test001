@@ -4,10 +4,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // ====== i18n (TH/EN) minimal ======
   const i18n = {
     en:{
-  user_dashboard:"User Dashboard",admin_console:"Admin Console",certificates:"Certificates",eligible_hint:"Request a certificate when progress reaches 100%.",status:"Status",all_status:"All status",all_statuses:"All status",pending:"Pending Review",approved:"Approved",rejected:"Not Approved",all_types:"All types",name:"Name",project:"Project",date:"Date",length:"Length",action:"Action",upload_slip:"Upload Slip",drop_or_browse:"Drop JPG/PNG (≤ 10MB) or click to browse",cancel:"Cancel",confirm:"Confirm",request_certificate:"Request Certificate",download_pdf:"Download PDF",contact_support:"Contact Support",slip_not_uploaded:"Slip: Not uploaded",slip_uploaded:"Slip: Uploaded",slip_verified:"Slip: Verified",free:"Free",general:"General",special:"Special",unsupported_format:"Unsupported file format",file_too_large:"File is too large (max 10MB)",approve:"Approve",not_approve:"Not Approve",action:"Action"
+  user_dashboard:"User Dashboard",admin_console:"Admin Console",certificates:"Certificates",eligible_hint:"Request a certificate when progress reaches 100%.",status:"Status",all_status:"All status",all_statuses:"All status",pending:"Pending Review",approved:"Approved",rejected:"Not Approved",all_types:"All types",name:"Name",project:"Project",date:"Date",length:"Length",action:"Action",upload_slip:"Upload Slip",drop_or_browse:"Drop JPG/PNG (≤ 10MB) or click to browse",cancel:"Cancel",confirm:"Confirm",request_certificate:"Request Certificate",download_pdf:"Download PDF",contact_support:"Contact Support",sent_to_admin:"Request sent to admin",slip_not_uploaded:"Slip: Not uploaded",slip_uploaded:"Slip: Uploaded",slip_verified:"Slip: Verified",free:"Free",general:"General",special:"Special",unsupported_format:"Unsupported file format",file_too_large:"File is too large (max 10MB)",approve:"Approve",not_approve:"Not Approve",action:"Action"
     },
     th:{
-  user_dashboard:"แดชบอร์ดผู้ใช้",admin_console:"คอนโซลผู้ดูแล",certificates:"ใบรับรอง",eligible_hint:"ขอใบรับรองได้เมื่อความคืบหน้า 100%",status:"สถานะ",all_status:"ทุกสถานะ",all_statuses:"ทุกสถานะ",pending:"รอตรวจสอบ",approved:"อนุมัติแล้ว",rejected:"ไม่อนุมัติ",all_types:"ทุกประเภท",name:"ชื่อ",project:"โครงการ",date:"วันที่",length:"ระยะเวลา",action:"การทำงาน",upload_slip:"อัปโหลดสลิป",drop_or_browse:"ลากไฟล์ JPG/PNG (≤ 10MB) หรือคลิกเพื่อเลือก",cancel:"ยกเลิก",confirm:"ยืนยัน",request_certificate:"ขอใบรับรอง",download_pdf:"ดาวน์โหลด PDF",contact_support:"ติดต่อเจ้าหน้าที่",slip_not_uploaded:"สลิป: ยังไม่อัปโหลด",slip_uploaded:"สลิป: อัปโหลดแล้ว",slip_verified:"สลิป: ตรวจผ่าน",free:"ฟรี",general:"ทั่วไป",special:"พิเศษ",unsupported_format:"รูปแบบไฟล์ไม่รองรับ",file_too_large:"ไฟล์ใหญ่เกินไป (สูงสุด 10MB)",approve:"อนุมัติ",not_approve:"ไม่อนุมัติ",action:"การทำงาน"
+  user_dashboard:"แดชบอร์ดผู้ใช้",admin_console:"คอนโซลผู้ดูแล",certificates:"ใบรับรอง",eligible_hint:"ขอใบรับรองได้เมื่อความคืบหน้า 100%",status:"สถานะ",all_status:"ทุกสถานะ",all_statuses:"ทุกสถานะ",pending:"รอตรวจสอบ",approved:"อนุมัติแล้ว",rejected:"ไม่อนุมัติ",all_types:"ทุกประเภท",name:"ชื่อ",project:"โครงการ",date:"วันที่",length:"ระยะเวลา",action:"การทำงาน",upload_slip:"อัปโหลดสลิป",drop_or_browse:"ลากไฟล์ JPG/PNG (≤ 10MB) หรือคลิกเพื่อเลือก",cancel:"ยกเลิก",confirm:"ยืนยัน",request_certificate:"ขอใบรับรอง",download_pdf:"ดาวน์โหลด PDF",contact_support:"ติดต่อเจ้าหน้าที่",sent_to_admin:"ได้ส่งเรื่องไปที่ Admin แล้ว",slip_not_uploaded:"สลิป: ยังไม่อัปโหลด",slip_uploaded:"สลิป: อัปโหลดแล้ว",slip_verified:"สลิป: ตรวจผ่าน",free:"ฟรี",general:"ทั่วไป",special:"พิเศษ",unsupported_format:"รูปแบบไฟล์ไม่รองรับ",file_too_large:"ไฟล์ใหญ่เกินไป (สูงสุด 10MB)",approve:"อนุมัติ",not_approve:"ไม่อนุมัติ",action:"การทำงาน"
     }
   };
   let lang = 'en';
@@ -79,7 +79,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const actionsRow = document.createElement('div'); actionsRow.className='row'; actionsRow.style.gap='8px'; actionsRow.style.justifyContent='flex-end';
       const detailsBtn = document.createElement('button'); detailsBtn.className='btn ghost'; detailsBtn.type='button'; detailsBtn.textContent='Details';
       const reqBtn = document.createElement('button'); reqBtn.className='btn primary'; reqBtn.id = `req-${p.id}`; reqBtn.type='button'; reqBtn.disabled = p.progress!==100;
-      reqBtn.textContent = t('request_certificate');
+      // Determine whether this project should show 'Contact Support' instead of 'Request Certificate'
+      const forceContact = (p.type === 'Special') || (p.id === 'P-1002');
+      reqBtn.textContent = forceContact ? t('contact_support') : t('request_certificate');
+      if (forceContact) {
+        reqBtn.disabled = false; // ensure contact button is enabled
+        reqBtn.classList.remove('primary');
+      }
       actionsRow.appendChild(detailsBtn); actionsRow.appendChild(reqBtn);
 
       bodyStack.appendChild(metaRow);
@@ -102,12 +108,62 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // request action
-      reqBtn.addEventListener('click',()=>handleRequest(p));
-      if(p.type==='Special'){
-        // require manual approval → change text and style
-        reqBtn.disabled = false; reqBtn.textContent = t('contact_support'); reqBtn.classList.remove('primary');
-      }
+      reqBtn.addEventListener('click',()=>{
+        if(forceContact) attachProjectToAdminRow(p);
+        else handleRequest(p);
+      });
+      // If previously set as special-case, we already adjusted text/style above
     })
+  }
+
+  // Attach project info to an admin row (Option B)
+  function attachProjectToAdminRow(project){
+    // Always create a new admin request row populated with project details
+    const today = new Date().toISOString().slice(0,10);
+    const newReq = {
+      id: 'R-P-' + Date.now(), // synthetic id for project-sourced requests
+      // Put project name in the Name column so admin sees the project clearly
+      name: project.name,
+      // Include project name, id and type in the Project column for full context
+      project: `${project.name} — ${project.id} (${project.type})`,
+      date: today,
+      length: project.length,
+      status: 'Pending'
+    };
+    requests.push(newReq);
+    // Refresh admin table view
+    renderRequests();
+    // show confirmation toast
+    showToast(t('sent_to_admin'));
+  }
+
+  // small toast helper (non-blocking notification)
+  function showToast(message, ms = 3000){
+    try{
+      const toast = document.createElement('div');
+      toast.textContent = message;
+      Object.assign(toast.style, {
+        position: 'fixed',
+        right: '20px',
+        bottom: '20px',
+        background: 'rgba(26,32,44,0.95)',
+        color: '#fff',
+        padding: '10px 14px',
+        borderRadius: '8px',
+        boxShadow: '0 6px 20px rgba(0,0,0,.12)',
+        zIndex: 9999,
+        opacity: '0',
+        transition: 'opacity 200ms ease-in-out, transform 200ms ease-in-out',
+        transform: 'translateY(8px)'
+      });
+      document.body.appendChild(toast);
+      // animate in
+      requestAnimationFrame(()=>{ toast.style.opacity = '1'; toast.style.transform = 'translateY(0)'; });
+      setTimeout(()=>{
+        toast.style.opacity = '0'; toast.style.transform = 'translateY(8px)';
+        toast.addEventListener('transitionend', ()=> toast.remove(), {once:true});
+      }, ms);
+    }catch(e){ console.warn('Toast failed', e); }
   }
 
   function addStatusItem(item){
