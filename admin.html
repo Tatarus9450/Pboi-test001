@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Certificate Platform — Admin</title>
+  <style>
+    /* same styles as main.html - minimal copy for prototype */
+    :root{ --primary:#2B6CB0; --secondary:#6B46C1; --success:#2F855A; --warning:#B7791F; --danger:#C53030; --text:#1A202C; --muted:#4A5568; --bg:#F7FAFC; --card:#FFFFFF; --border:#E2E8F0; --radius-lg:16px; --radius-sm:8px; --shadow:0 6px 20px rgba(0,0,0,.08); }
+    *{box-sizing:border-box} html,body{height:100%} body{margin:0;font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Inter,"Noto Sans Thai",sans-serif;color:var(--text);background:var(--bg)}
+    .container{max-width:1200px;margin:0 auto;padding:24px} header.nav{position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--border);z-index:3}
+    .nav-inner{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 24px} .brand{display:flex;align-items:center;gap:10px;font-weight:700}
+    .brand .logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--primary),var(--secondary));}
+    .actions{display:flex;align-items:center;gap:12px} .lang-switch button,.tab button{border:1px solid var(--border);background:#fff;border-radius:999px;padding:6px 12px;cursor:pointer}
+    .lang-switch button.active{background:var(--primary);color:#fff;border-color:var(--primary)} .tabs{display:flex;gap:8px;margin:16px 0} .tab button{border-radius:10px}
+    .tab button.active{background:var(--primary);color:#fff;border-color:var(--primary)} .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:16px}
+    .muted{color:var(--muted);font-size:14px} .row{display:flex;align-items:center;justify-content:space-between;gap:12px} .stack{display:flex;flex-direction:column;gap:8px}
+    .btn{appearance:none;border:1px solid var(--border);background:#fff;padding:10px 14px;border-radius:10px;cursor:pointer} .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+  .btn.ghost{background:#fff} .btn.success{background:var(--success);border-color:var(--success);color:#fff} .btn.danger{background:var(--danger);border-color:var(--danger);color:#fff} .btn.warning{background:var(--warning);border-color:var(--warning);color:#fff}
+    .pill{padding:2px 8px;border-radius:999px;border:1px solid var(--border);font-size:12px} .pill.ok{color:#fff;background:var(--success);border-color:var(--success)} .pill.pending{background:#FFF5EB;border-color:#FEEBC8}
+    .pill.bad{color:#fff;background:var(--danger);border-color:var(--danger)} table{width:100%;border-collapse:separate;border-spacing:0;overflow:auto} thead th{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--border);text-align:left;padding:12px} tbody td{border-bottom:1px solid var(--border);padding:12px} tbody tr:hover{background:#FAFAFF}
+    .toolbar{display:flex;align-items:center;gap:8px;justify-content:space-between;margin:8px 0} .input{height:38px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;width:240px} .select{height:38px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:#fff}
+    footer{margin:32px 0;color:var(--muted);font-size:14px;text-align:center}
+  </style>
+</head>
+<body>
+  <header class="nav" aria-label="Main navigation">
+    <div class="nav-inner">
+      <div class="brand" role="img" aria-label="Brand">
+        <div class="logo" aria-hidden="true"></div>
+        <span>Certify</span>
+      </div>
+      <div class="actions">
+        <nav class="tabs" aria-label="Sections">
+          <span class="tab"><button id="tabUser" data-i18n="user_dashboard">User Dashboard</button></span>
+          <span class="tab"><button id="tabAdmin" class="active" data-i18n="admin_console">Admin Console</button></span>
+        </nav>
+        <div class="lang-switch" role="group" aria-label="Language Switch">
+          <button id="langTH" aria-pressed="false">🇹🇭 TH</button>
+          <button id="langEN" class="active" aria-pressed="true">🇬🇧 EN</button>
+        </div>
+        <div class="profile pill" aria-label="Profile">TahLuvToLazy@boimail.com</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- ADMIN CONSOLE (separate page) -->
+    <section id="adminView" aria-labelledby="tabAdmin">
+      <div class="toolbar">
+        <div class="row wrap" style="gap:8px">
+          <select id="filterStatus" class="select" aria-label="Filter Status">
+            <option value="" data-i18n="all_statuses">All status</option>
+            <option value="Pending" data-i18n="pending">Pending Review</option>
+            <option value="Approved" data-i18n="approved">Approved</option>
+            <option value="Not Approved" data-i18n="rejected">Not Approved</option>
+          </select>
+          <select id="filterType" class="select" aria-label="Filter Project Type">
+            <option value="" data-i18n="all_types">All types</option>
+            <option value="Free">Free</option>
+            <option value="General">General</option>
+            <option value="Special">Special</option>
+          </select>
+          <select id="sortBy" class="select" aria-label="Sort By">
+            <option value="name_az">A–Z (Name)</option>
+            <option value="name_za">Z–A (Name)</option>
+            <option value="date_asc">Low→High (Date)</option>
+            <option value="date_desc">High→Low (Date)</option>
+          </select>
+        </div>
+        <div class="row" style="gap:8px">
+          <button id="setAllPending" class="btn warning" title="Set all requests to Pending">Set All Pending</button>
+          <button id="bulkApprove" class="btn success" disabled data-i18n="approve">Approve</button>
+          <button id="bulkReject" class="btn danger" disabled data-i18n="not_approve">Not Approve</button>
+          <input id="search" class="input search" type="search" placeholder="Search" aria-label="Search" />
+        </div>
+      </div>
+
+      <div class="card" style="padding:0">
+        <table aria-label="Certificate requests table">
+          <thead>
+            <tr>
+              <th style="width:44px"><input type="checkbox" id="selectAll" aria-label="Select all" /></th>
+              <th>ID</th>
+              <th data-i18n="name">Name</th>
+              <th data-i18n="project">Project</th>
+              <th data-i18n="date">Date</th>
+              <th data-i18n="length">Length</th>
+              <th data-i18n="status">Status</th>
+              <th data-i18n="action">Action</th>
+            </tr>
+          </thead>
+          <tbody id="requestRows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer>Admin Need a Nap Right?</footer>
+
+  <script src="javascripts/admin.js" defer></script>
+</body>
+</html>
