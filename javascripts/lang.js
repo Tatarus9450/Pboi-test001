@@ -41,12 +41,12 @@
   // Additional admin keys
   const adminExtras = {
     en: {
-      set_all_pending: 'Set All Pending',
+      set_all_pending: 'Set to pending',
       search: 'Search',
       select_all: 'Select all'
     },
     th: {
-      set_all_pending: 'ตั้งค่าสถานะทั้งหมดเป็นรอตรวจสอบ',
+      set_all_pending: 'ตั้งที่เลือกเป็นรอตรวจสอบ',
       search: 'ค้นหา',
       select_all: 'เลือกทั้งหมด'
     }

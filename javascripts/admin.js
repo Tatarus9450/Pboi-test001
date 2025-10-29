@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const requestRows = document.getElementById('requestRows');
   const selectAll = document.getElementById('selectAll');
   const bulkApprove = document.getElementById('bulkApprove');
+  const bulkDelete = document.getElementById('bulkDelete');
   const setAllPending = document.getElementById('setAllPending');
   const bulkReject = document.getElementById('bulkReject');
   const filterStatus = document.getElementById('filterStatus');
@@ -35,7 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const s = sortBy ? sortBy.value : '';
     rows.sort((a,b)=>{ if(s==='name_az') return a.name.localeCompare(b.name); if(s==='name_za') return b.name.localeCompare(a.name); if(s==='date_asc') return a.date.localeCompare(b.date); if(s==='date_desc') return b.date.localeCompare(a.date); return 0; });
     requestRows.innerHTML='';
-    rows.forEach(r=>{ const tr=document.createElement('tr'); tr.innerHTML = `
+    rows.forEach(r=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML = `
         <td><input type="checkbox" class="rowCheck" data-id="${r.id}"/></td>
         <td>${r.id}</td>
         <td>${r.name}</td>
@@ -49,17 +52,41 @@ document.addEventListener('DOMContentLoaded', () => {
             <option value="Approved">${t('approve')}</option>
             <option value="Not Approved">${t('not_approve')}</option>
           </select>
-        </td>`; requestRows.appendChild(tr); }); updateBulkState(); }
+        </td>`;
+      requestRows.appendChild(tr);
+    });
+    updateBulkState();
+    updateDeleteState();
+  }
 
-  function updateBulkState(){ const any = [...document.querySelectorAll('.rowCheck')].some(cb=>cb.checked); bulkApprove.disabled = !any; bulkReject.disabled = !any; const all = document.querySelectorAll('.rowCheck'); selectAll.checked = all.length && [...all].every(cb=>cb.checked); }
+  function updateBulkState(){
+    const any = [...document.querySelectorAll('.rowCheck')].some(cb=>cb.checked);
+    bulkApprove.disabled = !any;
+    bulkReject.disabled = !any;
+    if(setAllPending) setAllPending.disabled = !any;
+    const all = document.querySelectorAll('.rowCheck');
+    selectAll.checked = all.length && [...all].every(cb=>cb.checked);
+  }
+
+  // enable/disable the Delete button alongside other bulk controls
+  function updateDeleteState(){ const any = [...document.querySelectorAll('.rowCheck')].some(cb=>cb.checked); if(bulkDelete) bulkDelete.disabled = !any; }
 
   // ====== Events ======
-  selectAll.addEventListener('change', ()=>{ document.querySelectorAll('.rowCheck').forEach(cb=>cb.checked=selectAll.checked); updateBulkState(); });
-  document.addEventListener('change', e=>{ if(e.target.matches('.rowCheck')) updateBulkState(); if(e.target.matches('.actionSelect')){ const id=e.target.dataset.id; const val=e.target.value; const r = requests.find(x=>x.id===id); if(r){ r.status = val; saveRequests(); renderRequests(); } } });
+  selectAll.addEventListener('change', ()=>{ document.querySelectorAll('.rowCheck').forEach(cb=>cb.checked=selectAll.checked); updateBulkState(); updateDeleteState(); });
+  document.addEventListener('change', e=>{ if(e.target.matches('.rowCheck')) { updateBulkState(); updateDeleteState(); } if(e.target.matches('.actionSelect')){ const id=e.target.dataset.id; const val=e.target.value; const r = requests.find(x=>x.id===id); if(r){ r.status = val; saveRequests(); renderRequests(); } } });
   function bulkUpdate(status){ document.querySelectorAll('.rowCheck:checked').forEach(cb=>{ const id = cb.dataset.id; const r = requests.find(x=>x.id===id); if(r) r.status = status; }); saveRequests(); renderRequests(); }
   bulkApprove.addEventListener('click', ()=>bulkUpdate('Approved'));
   bulkReject.addEventListener('click', ()=>bulkUpdate('Not Approved'));
-  if(setAllPending){ setAllPending.addEventListener('click', ()=>{ requests.forEach(r=>r.status='Pending'); saveRequests(); renderRequests(); }); }
+  if(bulkDelete){ bulkDelete.addEventListener('click', ()=>{
+    const checked = [...document.querySelectorAll('.rowCheck:checked')].map(cb=>cb.dataset.id);
+    if(!checked.length) return;
+    // confirm deletion
+    if(!confirm('Delete selected requests? This cannot be undone.')) return;
+    requests = requests.filter(r=> !checked.includes(r.id));
+    saveRequests();
+    renderRequests();
+  }); }
+  if(setAllPending){ setAllPending.addEventListener('click', ()=>bulkUpdate('Pending')); }
   [filterStatus, filterType, sortBy, search].forEach(el=>{ if(el) el.addEventListener('input', renderRequests); });
 
   // header tabs: go back to user page

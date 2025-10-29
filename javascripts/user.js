@@ -15,8 +15,38 @@ document.addEventListener('DOMContentLoaded', () => {
     {id:'P-2001', name:'Enterprise Leadership', type:'Special', progress:100, length:40, requiresSlip:true}
   ];
 
-  // Current logged-in user (for prototype/demo). Replace with real auth source as needed.
-  const currentUserName = 'Talu Khulapwan';
+  // Current logged-in user (derive from profile pill on the page when possible)
+  let currentUserName = 'User';
+  function parseNameFromEmail(email){
+    if(!email) return 'User';
+    // take local part
+    const local = String(email).split('@')[0];
+    // insert spaces for camelCase boundaries
+    let s = local.replace(/([a-z])([A-Z])/g, '$1 $2');
+    // replace common separators with space
+    s = s.replace(/[._\-+]/g, ' ');
+    // remove trailing numbers
+    s = s.replace(/\d+/g, '');
+    // collapse spaces
+    s = s.replace(/\s+/g, ' ').trim();
+    if(!s) return 'User';
+    // title-case words
+    return s.split(' ').map(w => w.length? (w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()) : '').join(' ');
+  }
+  // attempt to read profile display (email or name) from header
+  (function(){
+    try{
+      const profileEl = document.querySelector('.profile') || document.querySelector('.profile.pill');
+      if(profileEl){
+        const txt = profileEl.textContent.trim();
+        if(txt.includes('@')){
+          currentUserName = parseNameFromEmail(txt);
+        } else if(txt.length){
+          currentUserName = txt;
+        }
+      }
+    }catch(e){ /* ignore and keep default */ }
+  })();
 
   // ====== Header tabs / language ======
   const tabUser = document.getElementById('tabUser');
@@ -76,7 +106,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }); }
 
   // ====== handle request (user) ======
-  function handleRequest(p){ const cur = getLang(); if((p.type==='General') && !p.__slipVerified){ alert((cur==='th')? 'กรุณาอัปโหลดสลิปและผ่านการตรวจสอบก่อน' : 'Please upload slip and pass verification first.'); return; } if(p.type==='Special'){ alert((cur==='th')? 'โครงการพิเศษ: กรุณาติดต่อเจ้าหน้าที่' : 'Special project: Please contact support.'); return; } const today = new Date().toISOString().slice(0,10); addStatusItem({id:'C-'+Math.floor(Math.random()*10000), project:p.name, date:today, status:'Approved'}); }
+  function handleRequest(p){
+    const cur = getLang();
+    if((p.type==='General') && !p.__slipVerified){ alert((cur==='th')? 'กรุณาอัปโหลดสลิปและผ่านการตรวจสอบก่อน' : 'Please upload slip and pass verification first.'); return; }
+    if(p.type==='Special'){ alert((cur==='th')? 'โครงการพิเศษ: กรุณาติดต่อเจ้าหน้าที่' : 'Special project: Please contact support.'); return; }
+    const today = new Date().toISOString().slice(0,10);
+    // include the real user's name in the status request entry
+    addStatusItem({id:'C-'+Math.floor(Math.random()*10000), project:p.name, name: currentUserName, date:today, status:'Approved'});
+  }
 
   function addStatusItem(item){
     const statusList = document.getElementById('statusList');
@@ -84,13 +121,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const badgeClass = item.status==='Approved' ? 'pill ok' : (item.status==='Not Approved' ? 'pill bad' : 'pill pending');
     const left = document.createElement('div'); left.className='stack';
     const strong = document.createElement('strong'); strong.textContent = item.project;
+    // append project title first
+    left.appendChild(strong);
+    // optional name under project title
+    if(item.name){
+      const nameLine = document.createElement('div'); nameLine.className = 'muted'; nameLine.style.fontSize = '14px'; nameLine.textContent = `${t('name')}: ${item.name}`;
+      left.appendChild(nameLine);
+    }
     const meta = document.createElement('span'); meta.className='muted'; meta.textContent = `${item.date} • ${t('id_label')}: ${item.id}`;
-    left.appendChild(strong); left.appendChild(meta);
+    left.appendChild(meta);
     const right = document.createElement('div'); right.className='row'; right.style.gap='8px';
     const statusSpan = document.createElement('span'); statusSpan.className = badgeClass; statusSpan.textContent = t(item.status==='Approved'?'approved':item.status==='Not Approved'?'rejected':'pending');
     right.appendChild(statusSpan);
     if(item.status==='Approved'){
-      const dl = document.createElement('button'); dl.className='btn'; dl.setAttribute('aria-label', t('download_pdf')); dl.textContent = t('download_pdf'); right.appendChild(dl);
+      // create a real download link to the prepared Test.pdf in the project root
+      const dl = document.createElement('a');
+      dl.className = 'btn';
+      dl.setAttribute('aria-label', t('download_pdf'));
+      dl.textContent = t('download_pdf');
+      // point to the test PDF in repo root; if you want a different file name
+      // or per-item PDF, update this href or generate blobs dynamically.
+      dl.href = 'Test.pdf';
+      // suggest a friendly filename when the user saves the file
+      const safeName = (item.project || 'certificate').replace(/[^\w\-_. ]+/g, '').trim().replace(/\s+/g, '_').slice(0,50) + '.pdf';
+      dl.setAttribute('download', safeName);
+      // ensure link opens in a new tab as fallback for browsers that ignore download attribute
+      dl.target = '_blank';
+      right.appendChild(dl);
     }
     el.appendChild(left); el.appendChild(right); statusList.prepend(el);
   }
