@@ -42,11 +42,15 @@
   const adminExtras = {
     en: {
       set_all_pending: 'Set to pending',
+      delete_selected: 'Delete selected',
+      template: 'Template',
       search: 'Search',
       select_all: 'Select all'
     },
     th: {
       set_all_pending: 'ตั้งที่เลือกเป็นรอตรวจสอบ',
+      delete_selected: 'ลบรายการที่เลือก',
+      template: 'เทมเพลต',
       search: 'ค้นหา',
       select_all: 'เลือกทั้งหมด'
     }

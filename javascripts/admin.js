@@ -1,5 +1,7 @@
 // admin.js - Admin Dashboard logic
 document.addEventListener('DOMContentLoaded', () => {
+  const TEMPLATE_OPTIONS = ['A Template', 'Super Learn Template', 'I wanna sleep Template'];
+
   // ====== i18n via shared javascripts/lang.js ======
   // Use the shared Lang module when available.
   if(window.Lang && typeof window.Lang.init === 'function'){
@@ -9,7 +11,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ====== Load requests from localStorage or fallback ======
   let requests = [];
-  function loadRequests(){ try{ const raw = localStorage.getItem('requests'); if(raw){ requests = JSON.parse(raw); } else { requests = [ {id:'R-001', name:'Anya Chai', project:'Foundations of Design', date:'2025-10-01', length:20, status:'Approved'}, {id:'R-002', name:'Niran Boon', project:'Advanced UX Workshop', date:'2025-10-05', length:30, status:'Pending'}, {id:'R-003', name:'Mali Bee', project:'Enterprise Leadership', date:'2025-10-07', length:40, status:'Pending'} ]; localStorage.setItem('requests', JSON.stringify(requests)); } }catch(e){ console.error('loadRequests', e); requests = []; } }
+  function withTemplate(r){
+    if(!r) return r;
+    if(!r.template || !TEMPLATE_OPTIONS.includes(r.template)){
+      r.template = TEMPLATE_OPTIONS[0];
+    }
+    return r;
+  }
+
+  function loadRequests(){
+    try{
+      const raw = localStorage.getItem('requests');
+      if(raw){
+        requests = JSON.parse(raw).map(withTemplate);
+      } else {
+        requests = [
+          {id:'R-001', name:'Anya Chai', project:'Foundations of Design', template:TEMPLATE_OPTIONS[0], date:'2025-10-01', length:20, status:'Approved'},
+          {id:'R-002', name:'Niran Boon', project:'Advanced UX Workshop', template:TEMPLATE_OPTIONS[1], date:'2025-10-05', length:30, status:'Pending'},
+          {id:'R-003', name:'Mali Bee', project:'Enterprise Leadership', template:TEMPLATE_OPTIONS[2], date:'2025-10-07', length:40, status:'Pending'}
+        ];
+        localStorage.setItem('requests', JSON.stringify(requests));
+      }
+    }catch(e){
+      console.error('loadRequests', e);
+      requests = [];
+    }
+  }
   function saveRequests(){ try{ localStorage.setItem('requests', JSON.stringify(requests)); }catch(e){ console.error('saveRequests', e); } }
 
   // ====== Elements ======
@@ -32,17 +59,27 @@ document.addEventListener('DOMContentLoaded', () => {
     if(fs) rows = rows.filter(r=>r.status===fs);
     if(ft) rows = rows.filter(r=> r.project.toLowerCase().includes(ft) || (r.name && r.name.toLowerCase().includes(ft)) );
     const q = search ? search.value.trim().toLowerCase() : '';
-    if(q) rows = rows.filter(r=>{ const lengthStr = r.length ? (String(r.length) + 'h') : ''; const hay = (r.id + ' ' + r.name + ' ' + r.project + ' ' + r.date + ' ' + r.length + ' ' + lengthStr).toLowerCase(); return hay.includes(q); });
+    if(q) rows = rows.filter(r=>{
+      const lengthStr = r.length ? (String(r.length) + 'h') : '';
+      const hay = (r.id + ' ' + r.name + ' ' + r.project + ' ' + (r.template || '') + ' ' + r.date + ' ' + r.length + ' ' + lengthStr).toLowerCase();
+      return hay.includes(q);
+    });
     const s = sortBy ? sortBy.value : '';
     rows.sort((a,b)=>{ if(s==='name_az') return a.name.localeCompare(b.name); if(s==='name_za') return b.name.localeCompare(a.name); if(s==='date_asc') return a.date.localeCompare(b.date); if(s==='date_desc') return b.date.localeCompare(a.date); return 0; });
     requestRows.innerHTML='';
     rows.forEach(r=>{
       const tr=document.createElement('tr');
+      const templateOptions = TEMPLATE_OPTIONS.map(option=>`<option value="${option}" ${r.template===option?'selected':''}>${option}</option>`).join('');
       tr.innerHTML = `
         <td><input type="checkbox" class="rowCheck" data-id="${r.id}"/></td>
         <td>${r.id}</td>
         <td>${r.name}</td>
         <td>${r.project}</td>
+        <td>
+          <select class="select templateSelect" data-id="${r.id}">
+            ${templateOptions}
+          </select>
+        </td>
         <td>${r.date}</td>
         <td>${r.length}h</td>
         <td><span class="pill ${r.status==='Approved'?'ok':r.status==='Not Approved'?'bad':'pending'}">${t(r.status==='Approved'?'approved':r.status==='Not Approved'?'rejected':'pending')}</span></td>
@@ -73,7 +110,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ====== Events ======
   selectAll.addEventListener('change', ()=>{ document.querySelectorAll('.rowCheck').forEach(cb=>cb.checked=selectAll.checked); updateBulkState(); updateDeleteState(); });
-  document.addEventListener('change', e=>{ if(e.target.matches('.rowCheck')) { updateBulkState(); updateDeleteState(); } if(e.target.matches('.actionSelect')){ const id=e.target.dataset.id; const val=e.target.value; const r = requests.find(x=>x.id===id); if(r){ r.status = val; saveRequests(); renderRequests(); } } });
+  document.addEventListener('change', e=>{
+    if(e.target.matches('.rowCheck')) {
+      updateBulkState();
+      updateDeleteState();
+    }
+    if(e.target.matches('.actionSelect')){
+      const id=e.target.dataset.id;
+      const val=e.target.value;
+      const r = requests.find(x=>x.id===id);
+      if(r){
+        r.status = val;
+        saveRequests();
+        renderRequests();
+      }
+    }
+    if(e.target.matches('.templateSelect')){
+      const id = e.target.dataset.id;
+      const val = e.target.value;
+      const r = requests.find(x=>x.id===id);
+      if(r && TEMPLATE_OPTIONS.includes(val)){
+        r.template = val;
+        saveRequests();
+      }
+    }
+  });
   function bulkUpdate(status){ document.querySelectorAll('.rowCheck:checked').forEach(cb=>{ const id = cb.dataset.id; const r = requests.find(x=>x.id===id); if(r) r.status = status; }); saveRequests(); renderRequests(); }
   bulkApprove.addEventListener('click', ()=>bulkUpdate('Approved'));
   bulkReject.addEventListener('click', ()=>bulkUpdate('Not Approved'));
