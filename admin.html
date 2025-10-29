@@ -28,7 +28,7 @@
     <div class="nav-inner">
       <div class="brand" role="img" aria-label="Brand">
         <div class="logo" aria-hidden="true"></div>
-        <span>Certify</span>
+        <span>Certificate</span>
       </div>
       <div class="actions">
         <nav class="tabs" aria-label="Sections">
@@ -69,10 +69,10 @@
           </select>
         </div>
         <div class="row" style="gap:8px">
-          <button id="setAllPending" class="btn warning" title="Set all requests to Pending">Set All Pending</button>
+          <button id="setAllPending" class="btn warning" title="" data-i18n="set_all_pending">Set All Pending</button>
           <button id="bulkApprove" class="btn success" disabled data-i18n="approve">Approve</button>
           <button id="bulkReject" class="btn danger" disabled data-i18n="not_approve">Not Approve</button>
-          <input id="search" class="input search" type="search" placeholder="Search" aria-label="Search" />
+          <input id="search" class="input search" type="search" placeholder="" data-i18n="search" />
         </div>
       </div>
 
@@ -80,7 +80,7 @@
         <table aria-label="Certificate requests table">
           <thead>
             <tr>
-              <th style="width:44px"><input type="checkbox" id="selectAll" aria-label="Select all" /></th>
+              <th style="width:44px"><input type="checkbox" id="selectAll" data-i18n="select_all" /></th>
               <th>ID</th>
               <th data-i18n="name">Name</th>
               <th data-i18n="project">Project</th>
@@ -98,6 +98,7 @@
 
   <footer>Admin Need a Nap Right?</footer>
 
+  <script src="javascripts/lang.js" defer></script>
   <script src="javascripts/admin.js" defer></script>
 </body>
 </html>

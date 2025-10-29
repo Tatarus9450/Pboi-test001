@@ -78,7 +78,7 @@
     <div class="nav-inner">
       <div class="brand" role="img" aria-label="Brand">
         <div class="logo" aria-hidden="true"></div>
-        <span>Certify</span>
+        <span>Certificate</span>
       </div>
       <div class="actions">
         <nav class="tabs" aria-label="Sections">
@@ -136,7 +136,7 @@
         <div class="row" style="gap:8px">
           <button id="bulkApprove" class="btn success" disabled data-i18n="approve">Approve</button>
           <button id="bulkReject" class="btn danger" disabled data-i18n="not_approve">Not Approve</button>
-          <input id="search" class="input search" type="search" placeholder="Search" aria-label="Search" />
+          <input id="search" class="input search" type="search" placeholder="" data-i18n="search" />
         </div>
       </div>
 
@@ -144,7 +144,7 @@
         <table aria-label="Certificate requests table">
           <thead>
             <tr>
-              <th style="width:44px"><input type="checkbox" id="selectAll" aria-label="Select all" /></th>
+              <th style="width:44px"><input type="checkbox" id="selectAll" data-i18n="select_all" /></th>
               <th>ID</th>
               <th data-i18n="name">Name</th>
               <th data-i18n="project">Project</th>
@@ -168,7 +168,7 @@
           <input type="file" id="slipInput" accept="image/png,image/jpeg" hidden />
         </div>
         <div class="preview" id="slipPreview" hidden>
-          <img id="slipThumb" alt="Slip preview" />
+          <img id="slipThumb" alt="" />
           <div class="stack">
             <div class="muted" id="slipMeta">—</div>
             <div><span class="pill pending" id="ocrStatus">OCR: Pending</span></div>
@@ -185,6 +185,7 @@
 
   <footer>ฮัลโหล เทสๆ Heloo Worlld</footer>
 
+  <script src="javascripts/lang.js" defer></script>
   <script src="javascripts/user.js" defer></script>
 </body>
 </html>

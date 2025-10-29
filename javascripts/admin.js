@@ -1,14 +1,11 @@
 // admin.js - Admin Dashboard logic
 document.addEventListener('DOMContentLoaded', () => {
-  // ====== i18n (same keys as user.js) ======
-  const i18n = {
-    en:{user_dashboard:"User Dashboard",admin_console:"Admin Console",certificates:"Certificates",eligible_hint:"Request a certificate when progress reaches 100%.",status:"Status",all_status:"All status",all_statuses:"All status",pending:"Pending Review",approved:"Approved",rejected:"Not Approved",all_types:"All types",name:"Name",project:"Project",date:"Date",length:"Length",action:"Action",upload_slip:"Upload Slip",drop_or_browse:"Drop JPG/PNG (≤ 10MB) or click to browse",cancel:"Cancel",confirm:"Confirm",request_certificate:"Request Certificate",download_pdf:"Download PDF",contact_support:"Contact Support",sent_to_admin:"Request sent to admin",slip_not_uploaded:"Slip: Not uploaded",slip_uploaded:"Slip: Uploaded",slip_verified:"Slip: Verified",free:"Free",general:"General",special:"Special",unsupported_format:"Unsupported file format",file_too_large:"File is too large (max 10MB)",approve:"Approve",not_approve:"Not Approve",action:"Action"},
-    th:{user_dashboard:"แดชบอร์ดผู้ใช้",admin_console:"คอนโซลผู้ดูแล",certificates:"ใบรับรอง",eligible_hint:"ขอใบรับรองได้เมื่อความคืบหน้า 100%",status:"สถานะ",all_status:"ทุกสถานะ",all_statuses:"ทุกสถานะ",pending:"รอตรวจสอบ",approved:"อนุมัติแล้ว",rejected:"ไม่อนุมัติ",all_types:"ทุกประเภท",name:"ชื่อ",project:"โครงการ",date:"วันที่",length:"ระยะเวลา",action:"การทำงาน",upload_slip:"อัปโหลดสลิป",drop_or_browse:"ลากไฟล์ JPG/PNG (≤ 10MB) หรือคลิกเพื่อเลือก",cancel:"ยกเลิก",confirm:"ยืนยัน",request_certificate:"ขอใบรับรอง",download_pdf:"ดาวน์โหลด PDF",contact_support:"ติดต่อเจ้าหน้าที่",sent_to_admin:"ได้ส่งเรื่องไปที่ Admin แล้ว",slip_not_uploaded:"สลิป: ยังไม่อัปโหลด",slip_uploaded:"สลิป: อัปโหลดแล้ว",slip_verified:"สลิป: ตรวจผ่าน",free:"ฟรี",general:"ทั่วไป",special:"พิเศษ",unsupported_format:"รูปแบบไฟล์ไม่รองรับ",file_too_large:"ไฟล์ใหญ่เกินไป (สูงสุด 10MB)",approve:"อนุมัติ",not_approve:"ไม่อนุมัติ",action:"การทำงาน"}
-  };
-  let lang = localStorage.getItem('lang') || 'en';
-  function t(key){return (i18n[lang] && i18n[lang][key]) || key}
-  function applyI18n(){document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent = t(el.dataset.i18n)})}
-  applyI18n();
+  // ====== i18n via shared javascripts/lang.js ======
+  // Use the shared Lang module when available.
+  if(window.Lang && typeof window.Lang.init === 'function'){
+    window.Lang.init();
+  }
+  function t(key){ return (window.Lang && window.Lang.t(key)) || key; }
 
   // ====== Load requests from localStorage or fallback ======
   let requests = [];
@@ -70,15 +67,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const tabAdmin = document.getElementById('tabAdmin');
   if(tabUser) tabUser.addEventListener('click', ()=>{ window.location.href = 'main.html'; });
 
-  // ====== language switch (same behavior as user.js) ======
+  // ====== language switch (use shared Lang) ======
   const langTH = document.getElementById('langTH');
   const langEN = document.getElementById('langEN');
-  function setLang(newLang){ lang = newLang; localStorage.setItem('lang', lang); applyI18n(); if(langTH) langTH.classList.toggle('active', lang==='th'); if(langEN) langEN.classList.toggle('active', lang==='en'); if(langTH) langTH.setAttribute('aria-pressed', String(lang==='th')); if(langEN) langEN.setAttribute('aria-pressed', String(lang==='en')); }
-  if(langTH) langTH.addEventListener('click', ()=> setLang('th'));
-  if(langEN) langEN.addEventListener('click', ()=> setLang('en'));
-  // initialize button states
-  if(langTH) langTH.classList.toggle('active', lang==='th');
-  if(langEN) langEN.classList.toggle('active', lang==='en');
+  if(window.Lang){
+    if(langTH) langTH.addEventListener('click', ()=> window.Lang.setLang('th'));
+    if(langEN) langEN.addEventListener('click', ()=> window.Lang.setLang('en'));
+    // initialize button states
+    if(langTH) langTH.classList.toggle('active', window.Lang.getLang() === 'th');
+    if(langEN) langEN.classList.toggle('active', window.Lang.getLang() === 'en');
+    if(langTH) langTH.setAttribute('aria-pressed', String(window.Lang.getLang() === 'th'));
+    if(langEN) langEN.setAttribute('aria-pressed', String(window.Lang.getLang() === 'en'));
+  }
 
   // ====== Init ======
   loadRequests();
