@@ -15,8 +15,157 @@ document.addEventListener('DOMContentLoaded', () => {
     {id:'P-2001', name:'Enterprise Leadership', type:'Special', progress:100, length:40, requiresSlip:true}
   ];
 
-  // Current logged-in user (derive from profile pill on the page when possible)
+  const TEMPLATE_OPTIONS = ['A Template', 'Super Learn Template', 'I wanna sleep Template'];
+  const statusList = document.getElementById('statusList');
   let currentUserName = 'User';
+  let requestsCache = [];
+  const requestButtons = new Map();
+
+  function matchRequest(record, projectId, descriptor){
+    if(!record) return false;
+    if(record.name && record.name !== currentUserName) return false;
+    if(record.projectId && projectId && record.projectId === projectId) return true;
+    if(descriptor && record.project === descriptor) return true;
+    return false;
+  }
+
+  function normalizeRequest(raw){
+    if(!raw || typeof raw !== 'object') return null;
+    const template = TEMPLATE_OPTIONS.includes(raw.template) ? raw.template : TEMPLATE_OPTIONS[0];
+    const createdGuess = typeof raw.createdAt === 'number' ? raw.createdAt : (Date.parse(raw.date) || Date.now());
+    return Object.assign({
+      projectId: raw.projectId || null
+    }, raw, {
+      template,
+      createdAt: createdGuess,
+      lastUpdated: typeof raw.lastUpdated === 'number' ? raw.lastUpdated : createdGuess
+    });
+  }
+
+  function loadRequestsFromStorage(){
+    try{
+      const raw = localStorage.getItem('requests');
+      if(!raw) return [];
+      const parsed = JSON.parse(raw);
+      if(!Array.isArray(parsed)) return [];
+      const cleaned = parsed.map(normalizeRequest).filter(Boolean);
+      return cleaned;
+    }catch(e){
+      console.error('loadRequestsFromStorage', e);
+      return [];
+    }
+  }
+
+  function ensureAutoApprovedRequest(list){
+    const project = projects.find(p=>p.id === 'P-1001');
+    if(!project) return {list, changed:false};
+    const descriptor = `${project.name} — ${project.id} (${project.type})`;
+    const exists = list.some(r => matchRequest(r, project.id, descriptor));
+    if(exists) return {list, changed:false};
+    const now = Date.now();
+    const today = new Date(now).toISOString().slice(0,10);
+    const entry = {
+      id: 'R-AUTO-' + now,
+      name: currentUserName,
+      project: descriptor,
+      projectId: project.id,
+      date: today,
+      length: project.length,
+      status: 'Approved',
+      template: TEMPLATE_OPTIONS[0],
+      reason: 'auto_approved',
+      createdAt: now,
+      lastUpdated: now
+    };
+    return {list: [...list, entry], changed:true};
+  }
+
+  function saveRequestsToStorage(list){
+    try{
+      localStorage.setItem('requests', JSON.stringify(list));
+    }catch(e){
+      console.error('saveRequestsToStorage', e);
+    }
+  }
+
+  function triggerPdfDownload(item){
+    try{
+      const safeName = (item.project || 'certificate').replace(/[^\w\-_. ]+/g, '').trim().replace(/\s+/g, '_').slice(0,50) + '.pdf';
+      const link = document.createElement('a');
+      link.href = 'Test.pdf';
+      link.download = safeName;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }catch(e){
+      console.warn('triggerPdfDownload failed', e);
+      try{ window.open('Test.pdf', '_blank'); }catch(err){}
+    }
+  }
+
+  function buildStatusCard(item){
+    const el = document.createElement('div'); el.className='card row';
+    const badgeClass = item.status==='Approved' ? 'pill ok' : (item.status==='Not Approved' ? 'pill bad' : 'pill pending');
+    const left = document.createElement('div'); left.className='stack';
+    const strong = document.createElement('strong'); strong.textContent = item.project;
+    left.appendChild(strong);
+    if(item.name){
+      const nameLine = document.createElement('div'); nameLine.className = 'muted'; nameLine.style.fontSize = '14px'; nameLine.textContent = `${t('name')}: ${item.name}`;
+      left.appendChild(nameLine);
+    }
+    const meta = document.createElement('span'); meta.className='muted'; const dateLabel = item.date || ''; meta.textContent = `${dateLabel}${dateLabel ? ' • ' : ''}${t('id_label')}: ${item.id}`;
+    left.appendChild(meta);
+    const right = document.createElement('div'); right.className='row'; right.style.gap='8px';
+    const statusSpan = document.createElement('span'); statusSpan.className = badgeClass; const statusKey = item.status === 'Approved' ? 'approved' : item.status === 'Not Approved' ? 'rejected' : 'pending'; statusSpan.textContent = t(statusKey);
+    right.appendChild(statusSpan);
+    const dlBtn = document.createElement('button');
+    dlBtn.className = 'btn';
+    dlBtn.type = 'button';
+    dlBtn.textContent = t('download_pdf');
+    dlBtn.setAttribute('aria-label', t('download_pdf'));
+    const canDownload = item.status === 'Approved';
+    dlBtn.disabled = !canDownload;
+    dlBtn.addEventListener('click', ()=>{ if(!dlBtn.disabled) triggerPdfDownload(item); });
+    right.appendChild(dlBtn);
+    el.appendChild(left); el.appendChild(right);
+    return el;
+  }
+
+  function renderStatusList(){
+    if(!statusList) return;
+    statusList.innerHTML = '';
+    const mine = requestsCache.filter(r => r && r.name === currentUserName);
+    mine.sort((a,b)=> (b.createdAt || 0) - (a.createdAt || 0));
+    mine.forEach(item => statusList.appendChild(buildStatusCard(item)));
+  }
+
+  function updateRequestButtons(){
+    requestButtons.forEach((meta, projectId)=>{
+      const hasRequest = requestsCache.some(r=>{
+        const descriptor = meta.descriptor;
+        return matchRequest(r, projectId, descriptor);
+      });
+      meta.button.disabled = hasRequest || meta.baseDisabled;
+    });
+  }
+
+  function refreshRequests(){
+    let list = loadRequestsFromStorage();
+    const ensured = ensureAutoApprovedRequest(list);
+    if(ensured.changed){
+      saveRequestsToStorage(ensured.list);
+      list = ensured.list;
+    } else {
+      list = ensured.list;
+    }
+    requestsCache = list;
+    renderStatusList();
+    updateRequestButtons();
+  }
+
+  // Current logged-in user (derive from profile pill on the page when possible)
   function parseNameFromEmail(email){
     if(!email) return 'User';
     // take local part
@@ -69,7 +218,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ====== Render Projects ======
   const projWrap = document.getElementById('projects');
-  function renderProjects(){ projWrap.innerHTML=''; projects.forEach(p=>{
+  function renderProjects(){
+    projWrap.innerHTML='';
+    requestButtons.clear();
+    projects.forEach(p=>{
       const card=document.createElement('div');card.className='card stack';
   const curLang = getLang();
   const typeLabel = curLang === 'th' ? (p.type === 'Free' ? t('free') : p.type === 'General' ? t('general') : t('special')) : p.type;
@@ -94,62 +246,57 @@ document.addEventListener('DOMContentLoaded', () => {
       const slipRow = document.createElement('div'); slipRow.className='row wrap'; slipRow.id = `slipState-${p.id}`;
       const actionsRow = document.createElement('div'); actionsRow.className='row'; actionsRow.style.gap='8px'; actionsRow.style.justifyContent='flex-end';
   const detailsBtn = document.createElement('button'); detailsBtn.className='btn ghost'; detailsBtn.type='button'; detailsBtn.textContent=t('details');
-      const reqBtn = document.createElement('button'); reqBtn.className='btn primary'; reqBtn.id = `req-${p.id}`; reqBtn.type='button'; reqBtn.disabled = p.progress!==100;
+      const reqBtn = document.createElement('button'); reqBtn.className='btn primary'; reqBtn.id = `req-${p.id}`; reqBtn.type='button';
       const forceContact = (p.type === 'Special') || (p.id === 'P-1002');
   reqBtn.textContent = forceContact ? t('contact_support') : t('request_certificate');
-      if (forceContact){ reqBtn.disabled = false; reqBtn.classList.remove('primary'); }
+      const baseDisabled = forceContact ? false : (p.progress!==100);
+      reqBtn.disabled = baseDisabled;
+      if (forceContact){ reqBtn.classList.remove('primary'); }
       actionsRow.appendChild(detailsBtn); actionsRow.appendChild(reqBtn);
       bodyStack.appendChild(metaRow); bodyStack.appendChild(progress); bodyStack.appendChild(slipRow); bodyStack.appendChild(actionsRow);
       card.appendChild(header); card.appendChild(bodyStack); projWrap.appendChild(card);
   if(p.type==='General' || p.type==='Special'){ const slipLabel = document.createElement('span'); slipLabel.className='muted'; slipLabel.id = `slipLabel-${p.id}`; slipLabel.textContent = t('slip_not_uploaded'); const uploadBtn = document.createElement('button'); uploadBtn.className='btn'; uploadBtn.type='button'; uploadBtn.id = `btnUpload-${p.id}`; uploadBtn.textContent = t('upload_slip'); const elig = document.createElement('span'); elig.className='pill pending'; elig.id = `elig-${p.id}`; elig.textContent = t('pending'); slipRow.appendChild(slipLabel); slipRow.appendChild(uploadBtn); slipRow.appendChild(elig); uploadBtn.addEventListener('click',()=>openUploadModal(p.id)); } else { const ok = document.createElement('span'); ok.className='pill ok'; ok.textContent = t('approved'); slipRow.appendChild(ok); }
-      reqBtn.addEventListener('click',()=>{ if(forceContact) createAdminRequestFromProject(p); else handleRequest(p); });
-    }); }
+      reqBtn.addEventListener('click',()=>{ if(forceContact) submitRequestToAdmin(p, 'contact_support'); else handleCertificateRequest(p); });
+      requestButtons.set(p.id, {button: reqBtn, descriptor: `${p.name} — ${p.id} (${p.type})`, baseDisabled});
+    });
+    updateRequestButtons();
+  }
 
   // ====== handle request (user) ======
-  function handleRequest(p){
+  function handleCertificateRequest(p){
     const cur = getLang();
     if((p.type==='General') && !p.__slipVerified){ alert((cur==='th')? 'กรุณาอัปโหลดสลิปและผ่านการตรวจสอบก่อน' : 'Please upload slip and pass verification first.'); return; }
     if(p.type==='Special'){ alert((cur==='th')? 'โครงการพิเศษ: กรุณาติดต่อเจ้าหน้าที่' : 'Special project: Please contact support.'); return; }
-    const today = new Date().toISOString().slice(0,10);
-    // include the real user's name in the status request entry
-    addStatusItem({id:'C-'+Math.floor(Math.random()*10000), project:p.name, name: currentUserName, date:today, status:'Approved'});
+    submitRequestToAdmin(p, 'certificate');
   }
 
-  function addStatusItem(item){
-    const statusList = document.getElementById('statusList');
-    const el = document.createElement('div'); el.className='card row';
-    const badgeClass = item.status==='Approved' ? 'pill ok' : (item.status==='Not Approved' ? 'pill bad' : 'pill pending');
-    const left = document.createElement('div'); left.className='stack';
-    const strong = document.createElement('strong'); strong.textContent = item.project;
-    // append project title first
-    left.appendChild(strong);
-    // optional name under project title
-    if(item.name){
-      const nameLine = document.createElement('div'); nameLine.className = 'muted'; nameLine.style.fontSize = '14px'; nameLine.textContent = `${t('name')}: ${item.name}`;
-      left.appendChild(nameLine);
+  function submitRequestToAdmin(project, reason){
+    const today = new Date().toISOString().slice(0,10);
+    const now = Date.now();
+    const descriptor = `${project.name} — ${project.id} (${project.type})`;
+    const list = loadRequestsFromStorage();
+    const existingIdx = list.findIndex(r => matchRequest(r, project.id, descriptor));
+    if(existingIdx >= 0){
+      showToast(t('already_submitted'));
+      updateRequestButtons();
+      return;
     }
-    const meta = document.createElement('span'); meta.className='muted'; meta.textContent = `${item.date} • ${t('id_label')}: ${item.id}`;
-    left.appendChild(meta);
-    const right = document.createElement('div'); right.className='row'; right.style.gap='8px';
-    const statusSpan = document.createElement('span'); statusSpan.className = badgeClass; statusSpan.textContent = t(item.status==='Approved'?'approved':item.status==='Not Approved'?'rejected':'pending');
-    right.appendChild(statusSpan);
-    if(item.status==='Approved'){
-      // create a real download link to the prepared Test.pdf in the project root
-      const dl = document.createElement('a');
-      dl.className = 'btn';
-      dl.setAttribute('aria-label', t('download_pdf'));
-      dl.textContent = t('download_pdf');
-      // point to the test PDF in repo root; if you want a different file name
-      // or per-item PDF, update this href or generate blobs dynamically.
-      dl.href = 'Test.pdf';
-      // suggest a friendly filename when the user saves the file
-      const safeName = (item.project || 'certificate').replace(/[^\w\-_. ]+/g, '').trim().replace(/\s+/g, '_').slice(0,50) + '.pdf';
-      dl.setAttribute('download', safeName);
-      // ensure link opens in a new tab as fallback for browsers that ignore download attribute
-      dl.target = '_blank';
-      right.appendChild(dl);
-    }
-    el.appendChild(left); el.appendChild(right); statusList.prepend(el);
+    list.push({
+      id: 'R-P-' + now,
+      name: currentUserName,
+      project: descriptor,
+      projectId: project.id,
+      date: today,
+      length: project.length,
+      status: reason === 'contact_support' ? 'Pending' : 'Pending',
+      template: TEMPLATE_OPTIONS[0],
+      reason: reason || 'request',
+      createdAt: now,
+      lastUpdated: now
+    });
+    saveRequestsToStorage(list);
+    refreshRequests();
+    showToast(t('sent_to_admin'));
   }
 
   // ====== Upload modal logic (user) ======
@@ -173,20 +320,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const cancelBtn = uploadModal.querySelector('button[value="cancel"]'); if(cancelBtn){ cancelBtn.addEventListener('click',()=>{ cleanupSelected(); uploadModal.close(); currentProjectId=null; }); }
   confirmUpload.addEventListener('click',()=>{ if(!currentProjectId||!selectedFile) return; const label = document.getElementById(`slipLabel-${currentProjectId}`); const elig = document.getElementById(`elig-${currentProjectId}`); if(label){ label.textContent = t('slip_verified'); } if(elig){ elig.className='pill ok'; elig.textContent=t('approved'); } const p = projects.find(x=>x.id===currentProjectId); if(p) p.__slipVerified=true; cleanupSelected(); currentProjectId = null; uploadModal.close(); });
 
-  // ====== Create admin request via localStorage ======
-  function createAdminRequestFromProject(project){
-    const today = new Date().toISOString().slice(0,10);
-    // send the real user name to admin instead of project name
-    const newReq = { id: 'R-P-' + Date.now(), name: currentUserName, project: `${project.name} — ${project.id} (${project.type})`, date: today, length: project.length, status: 'Pending' };
-    try{
-      const raw = localStorage.getItem('requests');
-      const list = raw ? JSON.parse(raw) : [];
-      list.push(newReq);
-      localStorage.setItem('requests', JSON.stringify(list));
-      showToast(t('sent_to_admin'));
-    }catch(e){ console.error('failed to save request', e); }
-  }
+  // ====== cross-tab sync ======
+  window.addEventListener('storage', (event) => {
+    if(event && event.key === 'requests'){
+      refreshRequests();
+    }
+  });
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refreshRequests(); });
 
   // ====== Init ======
   renderProjects();
+  refreshRequests();
 });

@@ -45,14 +45,16 @@
       delete_selected: 'Delete selected',
       template: 'Template',
       search: 'Search',
-      select_all: 'Select all'
+      select_all: 'Select all',
+      already_submitted: 'You already submitted this request'
     },
     th: {
       set_all_pending: 'ตั้งที่เลือกเป็นรอตรวจสอบ',
       delete_selected: 'ลบรายการที่เลือก',
       template: 'เทมเพลต',
       search: 'ค้นหา',
-      select_all: 'เลือกทั้งหมด'
+      select_all: 'เลือกทั้งหมด',
+      already_submitted: 'คุณได้ส่งคำร้องนี้แล้ว'
     }
   };
   Object.keys(adminExtras).forEach(code=>{

@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </td>
         <td>${r.date}</td>
         <td>${r.length}h</td>
-        <td><span class="pill ${r.status==='Approved'?'ok':r.status==='Not Approved'?'bad':'pending'}">${t(r.status==='Approved'?'approved':r.status==='Not Approved'?'rejected':'pending')}</span></td>
+        <td class="status-cell"><span class="pill ${r.status==='Approved'?'ok':r.status==='Not Approved'?'bad':'pending'}">${t(r.status==='Approved'?'approved':r.status==='Not Approved'?'rejected':'pending')}</span></td>
         <td>
           <select class="select actionSelect" data-id="${r.id}">
             <option value="" selected disabled>${t('action')}</option>
